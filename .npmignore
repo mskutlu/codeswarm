@@ -1,0 +1,13 @@
+node_modules/
+.codeswarm/sessions/
+*.log
+test-results/
+playwright-report/
+.history/
+.idea/
+.git/
+.gitignore
+.DS_Store
+**/node_modules/
+package-lock.json
+dashboard/node_modules/

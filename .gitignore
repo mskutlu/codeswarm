@@ -5,7 +5,6 @@ node_modules/
 test-results/
 playwright-report/
 dashboard/node_modules/
-samples/demo-crud-api/.agentic/sessions/
-samples/demo-crud-api/.claude/
-samples/demo-crud-api/.tldr*
+.codeswarm/sessions/
 package-lock.json
+.DS_Store

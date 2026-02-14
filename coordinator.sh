@@ -93,7 +93,7 @@ done
 PROJECT=$(cd "$PROJECT" 2>/dev/null && pwd)
 
 # ─── Session Setup ──────────────────────────────────────
-ARTIFACTS="${PROJECT}/.agentic"
+ARTIFACTS="${PROJECT}/.codeswarm"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 SESSION_ID="session_${TIMESTAMP}"
 SESSION_DIR="${ARTIFACTS}/sessions/${SESSION_ID}"
@@ -109,7 +109,7 @@ mkdir -p "$SKILLS_DIR"
 # ─── Tmux (opt-in only: --tmux flag) ─────────────────────
 # tmux strips shell environment (PATH, conda, API keys) which breaks agents.
 # Only enable with explicit --tmux flag. Default: direct background processes.
-TMUX_SESSION="agentic-${TIMESTAMP}"
+TMUX_SESSION="codeswarm-${TIMESTAMP}"
 if $USE_TMUX && command -v tmux &>/dev/null; then
   tmux new-session -d -s "$TMUX_SESSION" -n "coord" -x 200 -y 50 2>/dev/null || true
 else
@@ -140,13 +140,13 @@ _retry() {
     if [[ $attempt -lt $max_retries ]]; then
       local wait_secs=$(( retry_delay * attempt ))
       echo ""
-      echo "[agentic] ⚠️  Attempt ${attempt}/${max_retries} failed (exit ${exit_code}). Retrying in ${wait_secs}s..."
+      echo "[codeswarm] ⚠️  Attempt ${attempt}/${max_retries} failed (exit ${exit_code}). Retrying in ${wait_secs}s..."
       echo ""
       sleep $wait_secs
     fi
     attempt=$((attempt + 1))
   done
-  echo "[agentic] ✗ All ${max_retries} attempts failed (last exit ${exit_code})"
+  echo "[codeswarm] ✗ All ${max_retries} attempts failed (last exit ${exit_code})"
   return $exit_code
 }
 '

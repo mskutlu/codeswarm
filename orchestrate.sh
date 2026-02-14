@@ -104,15 +104,17 @@ read_config() {
 [[ -z "$EXECUTOR" ]] && EXECUTOR=$(read_config "executor" "gemini")
 [[ -z "$REVIEWER" ]] && REVIEWER=$(read_config "reviewer" "codex")
 
-# ─── Setup workspace ────────────────────────────────────
-AGENTIC_DIR="${PROJECT}/.agentic"
-PLAN_FILE="${AGENTIC_DIR}/plan.md"
-EXEC_LOG="${AGENTIC_DIR}/execution.log"
-REVIEW_FILE="${AGENTIC_DIR}/review.md"
-SCREENSHOTS_DIR="${AGENTIC_DIR}/screenshots"
-TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+# ─── Artifacts & Logging ─────────────────────────────────
+ARTIFACTS="${PROJECT}/.codeswarm"
+SESSION_ID="run_$(date +%Y%m%d_%H%M%S)"
+SESSION_DIR="${ARTIFACTS}/sessions/${SESSION_ID}"
+PLAN_FILE="${SESSION_DIR}/plan.md"
+EXEC_LOG="${SESSION_DIR}/execution.log"
+REVIEW_FILE="${SESSION_DIR}/review.md"
+SCREENSHOTS_DIR="${SESSION_DIR}/screenshots"
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S") # This variable is not used in the provided snippet, keeping it for consistency if used elsewhere.
 
-mkdir -p "$AGENTIC_DIR" "$SCREENSHOTS_DIR"
+mkdir -p "$SESSION_DIR" "$SCREENSHOTS_DIR"
 
 # ─── Logging ─────────────────────────────────────────────
 log() { echo -e "${CYAN}[$(date +%H:%M:%S)]${NC} $1"; }

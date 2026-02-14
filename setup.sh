@@ -93,7 +93,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Smoke Test', () => {
   test('should load login page', async ({ page }) => {
     await page.goto(process.env.TEST_URL || 'http://localhost:4200');
-    await page.screenshot({ path: '.agentic/screenshots/login-page.png' });
+    await page.screenshot({ path: '.codeswarm/screenshots/login-page.png' });
     // Verify the page loads without errors
     const title = await page.title();
     expect(title).toBeTruthy();
@@ -113,7 +113,7 @@ test.describe('Smoke Test', () => {
       await passwordInput.fill(process.env.TEST_PASS || 'admin');
       await loginButton.click();
       await page.waitForTimeout(3000);
-      await page.screenshot({ path: '.agentic/screenshots/after-login.png' });
+      await page.screenshot({ path: '.codeswarm/screenshots/after-login.png' });
     }
   });
 });
@@ -125,7 +125,7 @@ fi
 if [[ ! -f "$SCRIPT_DIR/.gitignore" ]]; then
   cat > "$SCRIPT_DIR/.gitignore" << 'EOIGNORE'
 node_modules/
-.agentic/
+.codeswarm/
 *.log
 test-results/
 playwright-report/

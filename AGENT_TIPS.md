@@ -158,11 +158,11 @@ codex exec --sandbox read-only "Review the git diff for security issues, \
 
 ### Integration with Orchestrator
 
-Windsurf (Cascade) can read the `.agentic/` directory:
+Windsurf (Cascade) can read the `.codeswarm/` directory:
 
 1. Open your project in Windsurf
-2. Ask Cascade: *"Read `.agentic/plan.md` and implement the changes"*
-3. Or: *"Read `.agentic/review.md` and fix the issues mentioned"*
+2. Ask Cascade: *"Read `.codeswarm/plan.md` and implement the changes"*
+3. Or: *"Read `.codeswarm/review.md` and fix the issues mentioned"*
 
 ### When to Use Windsurf
 
@@ -180,7 +180,7 @@ Windsurf (Cascade) can read the `.agentic/` directory:
 Antigravity has built-in browser capabilities:
 
 1. Open your project in Antigravity
-2. Ask: *"Read `.agentic/plan.md` and implement changes"*
+2. Ask: *"Read `.codeswarm/plan.md` and implement changes"*
 3. For browser testing: *"Open http://localhost:4200 in the browser, login, and verify the dashboard"*
 4. Design tasks: Use Pencil MCP for design-to-code workflows
 

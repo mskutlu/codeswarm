@@ -1,14 +1,14 @@
 # Task Protocol — Inter-Agent Communication
 
-This document defines how agents communicate through the shared `.agentic/` directory.
+This document defines how agents communicate through the shared `.codeswarm/` directory.
 
 ## Directory Structure
 
-Every project that uses the orchestrator gets a `.agentic/` directory:
+Every project that uses the orchestrator gets a `.codeswarm/` directory:
 
 ```
 <project-root>/
-└── .agentic/
+└── .codeswarm/
     ├── plan.md                    # Planner output
     ├── execution.log              # Executor output
     ├── review.md                  # Reviewer output
@@ -93,7 +93,7 @@ Each agent should:
 ## IDE Integration (Windsurf / Antigravity)
 
 IDEs can participate by:
-1. **Reading** `.agentic/plan.md` to understand what the CLI agents planned
+1. **Reading** `.codeswarm/plan.md` to understand what the CLI agents planned
 2. **Editing** files interactively when the executor needs human guidance
 3. **Running** browser tests using IDE's built-in browser tools
 4. **Reviewing** by opening `review.md` in the IDE's markdown preview
@@ -101,11 +101,11 @@ IDEs can participate by:
 ### Windsurf Integration
 ```
 # In Windsurf, open the project and use Cascade to review:
-"Read .agentic/plan.md and implement the changes described in it"
+"Read .codeswarm/plan.md and implement the changes described in it"
 ```
 
 ### Antigravity Integration
 ```
 # In Antigravity, use the built-in browser for visual testing:
-"Read .agentic/plan.md, implement changes, then use browser to verify at http://localhost:4200"
+"Read .codeswarm/plan.md, implement changes, then use browser to verify at http://localhost:4200"
 ```

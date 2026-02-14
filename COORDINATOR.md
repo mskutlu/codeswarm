@@ -52,7 +52,7 @@ When the reviewer says `NEEDS_CHANGES`, the executor automatically gets the feed
 If the reviewer flags `BLOCKER`, `ARCHITECTURE`, or `FUNDAMENTAL` issues, the coordinator automatically re-consults the planner to update the plan before the executor tries again.
 
 ### 4. Session History
-All messages, prompts, and outputs are saved to `<project>/.agentic/sessions/<session_id>/`, creating a full audit trail.
+All messages, prompts, and outputs are saved to `<project>/.codeswarm/sessions/<session_id>/`, creating a full audit trail.
 
 ### 5. Configurable Iterations
 Set `--max-iterations` to control how many execute→review cycles are allowed (default: 5).

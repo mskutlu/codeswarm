@@ -24,7 +24,7 @@ Usage:
   node server.js --project <path> [--session <id>] [--port 3777]
 
 Options:
-  --project, -p   Path to project with .agentic/ directory (required)
+  --project, -p   Path to project with .codeswarm/ directory (required)
   --session, -s   Specific session ID (default: latest)
   --port          Server port (default: 3777)
 `);
@@ -38,7 +38,7 @@ if (!projectDir) {
 }
 
 projectDir = path.resolve(projectDir);
-const agenticDir = path.join(projectDir, '.agentic');
+const agenticDir = path.join(projectDir, '.codeswarm');
 const sessionsDir = path.join(agenticDir, 'sessions');
 
 if (!fs.existsSync(agenticDir)) {
@@ -84,7 +84,7 @@ function extractTimestamp(line) {
 }
 
 function parseTaskFile(sessionPath) {
-  const taskFile = path.join(projectDir, '.agentic', 'task.md');
+  const taskFile = path.join(projectDir, '.codeswarm', 'task.md');
   if (!fs.existsSync(taskFile)) return { title: '', subtasks: [], isPrd: false };
 
   const raw = fs.readFileSync(taskFile, 'utf-8');

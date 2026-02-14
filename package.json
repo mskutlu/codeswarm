@@ -1,0 +1,62 @@
+{
+    "name": "codeswarm",
+    "version": "0.1.0",
+    "description": "Multi-agent AI orchestration framework — coordinate Claude, Gemini, Codex, Amp, and OpenCode as a unified dev team",
+    "license": "MIT",
+    "author": "Mustafa Kutlu <your-email@example.com>",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mskutlu/codeswarm.git"
+    },
+    "homepage": "https://github.com/mskutlu/codeswarm#readme",
+    "bugs": "https://github.com/mskutlu/codeswarm/issues",
+    "keywords": [
+        "ai",
+        "agent",
+        "multi-agent",
+        "orchestration",
+        "claude",
+        "gemini",
+        "codex",
+        "amp",
+        "opencode",
+        "coding-agent",
+        "autonomous",
+        "prd",
+        "dashboard",
+        "workflow"
+    ],
+    "bin": {
+        "codeswarm": "bin/codeswarm.js"
+    },
+    "files": [
+        "bin/",
+        "coordinator.sh",
+        "orchestrate.sh",
+        "setup.sh",
+        "config.yaml",
+        "dashboard/",
+        ".codeswarm/",
+        "docs/",
+        "playwright.config.ts",
+        "COORDINATOR.md",
+        "AGENT_TIPS.md",
+        "TASK_PROTOCOL.md",
+        "BROWSER_TESTING.md",
+        "WORKFLOWS.md",
+        "LICENSE",
+        "README.md"
+    ],
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "scripts": {
+        "test": "bash coordinator.sh --project /tmp/codeswarm-test --prd docs/prd-example.md --dry-run",
+        "dashboard": "node dashboard/server.js"
+    },
+    "dependencies": {
+        "chokidar": "^3.6.0",
+        "express": "^4.21.0",
+        "ws": "^8.18.0"
+    }
+}

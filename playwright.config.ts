@@ -13,7 +13,7 @@ export default defineConfig({
     },
     reporter: [
         ['html', { outputFolder: 'playwright-report' }],
-        ['json', { outputFile: '.agentic/test-results.json' }],
+        ['json', { outputFile: '.codeswarm/test-results.json' }],
     ],
-    outputDir: '.agentic/screenshots',
+    outputDir: '.codeswarm/screenshots',
 });

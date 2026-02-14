@@ -61,7 +61,7 @@ codeswarm --project ~/my-app \
   --reviewer gemini,amp
 
 # Run a complex workflow with a custom plan and dashboard
-codeswarm --project samples/demo-crud-api \
+codeswarm --project ~/my-project \
   --plan "docs/plan.md" \
   --planner codex \
   --executor claude \
@@ -108,7 +108,7 @@ codeswarm --project ~/my-app --prd docs/feature.md --dashboard
 ### 🛡️ Safety Features
 - **Watchdog timer** — kills stuck agents that produce no output
 - **Retry logic** — handles transient agent failures (API timeouts, connection resets)
-- **Session audit trail** — every prompt/log/directive saved to `.agentic/sessions/`
+- **Session audit trail** — every prompt/log/directive saved to `.codeswarm/sessions/`
 - **Dry-run mode** — preview all prompts without executing agents
 
 ## Project Structure
@@ -126,15 +126,12 @@ codeswarm/
 │   ├── package.json           # Dashboard dependencies
 │   └── public/
 │       └── index.html         # Dashboard SPA (dark theme, live UI)
-├── .agentic/
+├── .codeswarm/
 │   └── skills/
 │       └── prd_template.md    # PRD generation skill for planner agents
 ├── docs/
 │   ├── prd-template.md        # PRD format template
 │   └── prd-example.md         # Example PRD
-├── samples/
-│   ├── sample_prd.md          # Sample markdown PRD
-│   └── sample_prd.json        # Sample JSON PRD (ralph-style)
 ├── COORDINATOR.md             # Coordinator architecture docs
 ├── AGENT_TIPS.md              # Per-agent configuration tips
 ├── TASK_PROTOCOL.md           # How agents communicate via shared files
@@ -196,7 +193,7 @@ hooks:
 After a run, find everything under your project:
 
 ```
-<project>/.agentic/
+<project>/.codeswarm/
 ├── task.md                          # Current task plan
 ├── sessions/session_<timestamp>/
 │   ├── coordinator.log              # Full orchestration log
@@ -248,7 +245,7 @@ cd codeswarm
 ./setup.sh
 
 # Run tests
-./coordinator.sh --project /tmp/test-project --prd samples/sample_prd.md --dry-run
+./coordinator.sh --project /tmp/test-project --prd docs/prd-example.md --dry-run
 ```
 
 ## License
