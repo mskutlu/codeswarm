@@ -1,0 +1,13 @@
+{
+  "name": "demo-crud-api",
+  "version": "1.0.0",
+  "description": "Sample CRUD API for testing the Agentic multi-agent coordinator",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node test/run.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

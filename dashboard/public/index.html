@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agentic Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bg: '#0f1117',
+            card: '#1a1d27',
+            border: '#2a2d3a',
+            accent: '#6366f1',
+            success: '#22c55e',
+            warning: '#eab308',
+            danger: '#ef4444',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .log-box {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @keyframes pulse-ring {
+      0% {
+        transform: scale(0.8);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1.8);
+        opacity: 0;
+      }
+    }
+
+    .pulse-ring {
+      animation: pulse-ring 1.5s ease-out infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .agent-spin {
+      animation: spin 2s linear infinite;
+    }
+
+    .flow-line {
+      stroke-dasharray: 8 4;
+      animation: dash 1s linear infinite;
+    }
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -12;
+      }
+    }
+
+    .scroll-auto {
+      scroll-behavior: smooth;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #1a1d27;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #3a3d4a;
+      border-radius: 3px;
+    }
+
+    .tab-active {
+      border-bottom: 2px solid #6366f1;
+      color: #e2e8f0;
+    }
+
+    .tab-inactive {
+      border-bottom: 2px solid transparent;
+      color: #64748b;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .glow-green {
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .glow-yellow {
+      box-shadow: 0 0 12px rgba(234, 179, 8, 0.3);
+    }
+
+    .glow-red {
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .glow-purple {
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .search-highlight {
+      background: rgba(234, 179, 8, 0.3);
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+
+    .phase-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .phase-reading {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+    }
+
+    .phase-implementing {
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+    }
+
+    .phase-testing {
+      background: rgba(234, 179, 8, 0.2);
+      color: #fbbf24;
+    }
+
+    .phase-building {
+      background: rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+    }
+
+    .phase-committing {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+    }
+
+    .phase-reviewing {
+      background: rgba(244, 114, 182, 0.2);
+      color: #f472b6;
+    }
+
+    .timeline-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .timeline-line {
+      width: 2px;
+      background: #2a2d3a;
+      margin-left: 3px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen">
+  <div id="app"></div>
+
+  <script>
+    // ─── State ──────────────────────────────────────────
+    let state = null;
+    let selectedAgent = null;
+    let selectedLogFile = null;
+    let logContent = '';
+    let wsConnected = false;
+    let searchQuery = '';
+    let searchResults = null;
+    let currentPhase = null;
+    let showDirectives = false;
+
+    const AGENT_COLORS = {
+      claude: '#f97316',
+      codex: '#22c55e',
+      gemini: '#3b82f6',
+      amp: '#a855f7',
+      default: '#6366f1'
+    };
+
+    const AGENT_ICONS = {
+      claude: '🟠',
+      codex: '🟢',
+      gemini: '🔵',
+      amp: '🟣'
+    };
+
+    function agentColor(name) {
+      return AGENT_COLORS[name] || AGENT_COLORS.default;
+    }
+
+    // ─── WebSocket ──────────────────────────────────────
+    function connect() {
+      const ws = new WebSocket(`ws://${location.host}`);
+      ws.onopen = () => { wsConnected = true; render(); };
+      ws.onclose = () => {
+        wsConnected = false;
+        render();
+        setTimeout(connect, 2000);
+      };
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.state) {
+          state = msg.state;
+          render();
+          // Auto-refresh selected log
+          if (selectedLogFile) fetchLog(selectedLogFile);
+        }
+      };
+    }
+    connect();
+
+    // ─── API ────────────────────────────────────────────
+    async function fetchLog(file) {
+      selectedLogFile = file;
+      try {
+        const res = await fetch(`/api/log/${file}?lines=500`);
+        const data = await res.json();
+        logContent = data.content || '';
+        searchQuery = '';
+        searchResults = null;
+        render();
+        // Auto-scroll log
+        const logEl = document.getElementById('log-content');
+        if (logEl) logEl.scrollTop = logEl.scrollHeight;
+        // Fetch phase info
+        fetchPhase(file);
+      } catch (e) {
+        logContent = 'Error loading log';
+        render();
+      }
+    }
+
+    async function fetchPhase(file) {
+      try {
+        const res = await fetch(`/api/log-phases/${file}`);
+        const data = await res.json();
+        currentPhase = data.currentPhase;
+        render();
+      } catch (e) { /* ignore */ }
+    }
+
+    async function searchLog(query) {
+      searchQuery = query;
+      if (!selectedLogFile || !query) {
+        searchResults = null;
+        render();
+        return;
+      }
+      try {
+        const res = await fetch(`/api/log-search/${selectedLogFile}?q=${encodeURIComponent(query)}`);
+        searchResults = await res.json();
+        render();
+      } catch (e) {
+        searchResults = { matches: [], total: 0 };
+        render();
+      }
+    }
+
+    function downloadLog() {
+      if (!selectedLogFile) return;
+      window.open(`/api/log-download/${selectedLogFile}`, '_blank');
+    }
+
+    async function switchSession(sid) {
+      const res = await fetch(`/api/session/${sid}`);
+      state = await res.json();
+      selectedAgent = null;
+      selectedLogFile = null;
+      logContent = '';
+      render();
+    }
+
+    // ─── Render ─────────────────────────────────────────
+    function render() {
+      const app = document.getElementById('app');
+      if (!state) {
+        app.innerHTML = renderLoading();
+        return;
+      }
+      if (state.error) {
+        app.innerHTML = renderError();
+        return;
+      }
+      app.innerHTML = `
+        ${renderHeader()}
+        <div class="grid grid-cols-12 gap-4 p-4 h-[calc(100vh-140px)]">
+          <div class="col-span-3 flex flex-col gap-4 overflow-y-auto">
+            ${renderAgentFlow()}
+            ${renderSubtasks()}
+          </div>
+          <div class="col-span-6 flex flex-col gap-4 overflow-hidden">
+            ${renderLogPanel()}
+          </div>
+          <div class="col-span-3 flex flex-col gap-4 overflow-y-auto">
+            ${state.task.isPrd ? renderPrdProgress() : ''}
+            ${renderDirectiveTimeline()}
+            ${renderCoordLog()}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLoading() {
+      return `
+        <div class="flex items-center justify-center h-screen">
+          <div class="text-center">
+            <div class="text-4xl mb-4 agent-spin inline-block">⚙️</div>
+            <h2 class="text-xl font-semibold text-gray-300">Connecting to Dashboard...</h2>
+            <p class="text-gray-500 mt-2 mono text-sm">${wsConnected ? 'Waiting for session data' : 'Connecting WebSocket...'}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderError() {
+      return `
+        <div class="flex items-center justify-center h-screen">
+          <div class="text-center max-w-md">
+            <div class="text-4xl mb-4">📭</div>
+            <h2 class="text-xl font-semibold text-gray-300">No Active Session</h2>
+            <p class="text-gray-500 mt-2">Start the coordinator to begin monitoring.</p>
+            ${state.sessions && state.sessions.length > 0 ? `
+              <div class="mt-6">
+                <h3 class="text-sm font-medium text-gray-400 mb-3">Previous Sessions</h3>
+                <div class="flex flex-col gap-2">
+                  ${state.sessions.map(s => `
+                    <button onclick="switchSession('${s}')" class="px-4 py-2 bg-card rounded-lg border border-border hover:border-accent transition mono text-sm text-left">
+                      ${s}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHeader() {
+      const done = state.task.subtasks.filter(s => s.status === 'done').length;
+      const total = state.task.subtasks.length;
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      const running = state.runningAgents.length;
+
+      return `
+        <header class="bg-card border-b border-border px-6 py-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <h1 class="text-lg font-bold text-white flex items-center gap-2">
+                <span class="text-2xl">🧠</span> Agentic Dashboard
+              </h1>
+              <div class="flex items-center gap-2">
+                <span class="status-dot ${wsConnected ? 'bg-success' : 'bg-danger'}"></span>
+                <span class="text-xs text-gray-400 mono">${wsConnected ? 'LIVE' : 'DISCONNECTED'}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-6">
+              <div class="text-right">
+                <div class="text-xs text-gray-500">Session</div>
+                <div class="mono text-sm text-gray-300">${state.sessionId}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs text-gray-500">Round</div>
+                <div class="mono text-sm text-accent font-bold">${state.currentRound}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs text-gray-500">Progress</div>
+                <div class="mono text-sm font-bold ${pct === 100 ? 'text-success' : 'text-white'}">${done}/${total} (${pct}%)</div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs text-gray-500">Active</div>
+                <div class="mono text-sm ${running > 0 ? 'text-warning' : 'text-gray-500'}">${running} agent${running !== 1 ? 's' : ''}</div>
+              </div>
+            </div>
+          </div>
+          <!-- Progress bar -->
+          <div class="mt-2 h-1.5 bg-border rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500 ${pct === 100 ? 'bg-success' : 'bg-accent'}" style="width: ${pct}%"></div>
+          </div>
+          ${state.task.title ? `<div class="mt-1 text-xs text-gray-500 truncate">${state.task.title}</div>` : ''}
+        </header>
+      `;
+    }
+
+    function renderAgentFlow() {
+      const r = state.roles;
+      const agents = state.agents;
+      const running = new Set(state.runningAgents);
+
+      function agentNode(name, role, emoji) {
+        if (!name) return '';
+        const isRunning = running.has(name);
+        const agent = agents.find(a => a.name === name);
+        const logCount = agent ? agent.logs.length : 0;
+        const color = agentColor(name);
+        const borderClass = isRunning ? 'glow-yellow border-warning' : 'border-border';
+
+        return `
+          <div class="flex items-center gap-3 p-3 bg-card rounded-lg border ${borderClass} cursor-pointer hover:border-accent transition"
+               onclick="selectAgent('${name}')">
+            <div class="relative">
+              <span class="text-xl">${emoji || AGENT_ICONS[name] || '⚪'}</span>
+              ${isRunning ? '<span class="absolute -top-1 -right-1 w-3 h-3 bg-warning rounded-full pulse-ring"></span>' : ''}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-sm text-white">${name}</div>
+              <div class="text-xs text-gray-500">${role}</div>
+            </div>
+            <div class="text-xs mono text-gray-500">${logCount} logs</div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="bg-card/50 rounded-xl border border-border p-4">
+          <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Agent Flow</h2>
+          <div class="flex flex-col gap-2">
+            ${agentNode(r.planner, 'Planner (brain)', '🧠')}
+            <div class="flex justify-center text-gray-600">↓</div>
+            ${agentNode(r.executor, 'Backend Executor', '⚡')}
+            <div class="flex justify-center text-gray-600">↓</div>
+            ${r.reviewers.map(rev => agentNode(rev, 'Backend Reviewer', '🔍')).join('')}
+            ${r.frontendDev ? `
+              <div class="mt-2 pt-2 border-t border-border">
+                <div class="text-xs text-gray-500 mb-2">Frontend</div>
+                ${agentNode(r.frontendDev, 'Frontend Dev', '🎨')}
+                <div class="flex justify-center text-gray-600">↓</div>
+                ${r.frontendReviewers.map(rev => agentNode(rev, 'FE Reviewer', '🔍')).join('')}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSubtasks() {
+      const subtasks = state.task.subtasks;
+      if (subtasks.length === 0) {
+        return `
+          <div class="bg-card/50 rounded-xl border border-border p-4">
+            <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Subtasks</h2>
+            <p class="text-gray-500 text-sm">No subtasks yet — waiting for planner...</p>
+          </div>
+        `;
+      }
+
+      const statusIcon = { done: '✅', in_progress: '🔄', pending: '⬜' };
+      const statusColor = { done: 'text-success', in_progress: 'text-warning', pending: 'text-gray-500' };
+
+      return `
+        <div class="bg-card/50 rounded-xl border border-border p-4 flex-1 overflow-y-auto">
+          <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Subtasks (${subtasks.filter(s => s.status === 'done').length}/${subtasks.length})
+          </h2>
+          <div class="flex flex-col gap-1.5">
+            ${subtasks.map(s => `
+              <div class="flex items-start gap-2 p-2 rounded-lg ${s.status === 'in_progress' ? 'bg-warning/5 border border-warning/20' : 'hover:bg-white/5'} transition">
+                <span class="text-sm flex-shrink-0 mt-0.5">${statusIcon[s.status]}</span>
+                <div class="min-w-0">
+                  <span class="text-xs mono ${statusColor[s.status]}">#${s.num}</span>
+                  <span class="text-xs text-gray-300 ml-1">${s.title.length > 60 ? s.title.substring(0, 60) + '...' : s.title}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function selectAgent(name) {
+      selectedAgent = name;
+      const agent = state.agents.find(a => a.name === name);
+      if (agent && agent.latestLog) {
+        fetchLog(agent.latestLog.file);
+      }
+      render();
+    }
+
+    function renderLogPanel() {
+      const agents = state.agents;
+      if (agents.length === 0) {
+        return `
+          <div class="bg-card/50 rounded-xl border border-border p-6 flex-1 flex items-center justify-center">
+            <div class="text-center text-gray-500">
+              <div class="text-3xl mb-2">📋</div>
+              <p>No agent logs yet</p>
+            </div>
+          </div>
+        `;
+      }
+
+      // Tab bar
+      const tabs = agents.map(a => {
+        const isActive = selectedAgent === a.name;
+        const isRunning = state.runningAgents.includes(a.name);
+        return `
+          <button onclick="selectAgent('${a.name}')"
+                  class="px-4 py-2 text-sm font-medium whitespace-nowrap ${isActive ? 'tab-active' : 'tab-inactive'} hover:text-gray-300 transition flex items-center gap-2">
+            <span>${AGENT_ICONS[a.name] || '⚪'}</span>
+            ${a.name}
+            ${isRunning ? '<span class="w-2 h-2 bg-warning rounded-full pulse-ring"></span>' : ''}
+            <span class="text-xs text-gray-600">(${a.logs.length})</span>
+          </button>
+        `;
+      });
+
+      // Log file selector + controls for selected agent
+      const agent = agents.find(a => a.name === selectedAgent);
+      const logSelector = agent ? agent.logs.map(l => `
+        <button onclick="fetchLog('${l.file}')"
+                class="px-2 py-1 text-xs mono rounded ${selectedLogFile === l.file ? 'bg-accent text-white' : 'bg-border text-gray-400 hover:bg-gray-700'} transition">
+          #${l.seq} (${(l.size / 1024).toFixed(1)}KB)
+        </button>
+      `).join('') : '';
+
+      // Phase badge
+      const phaseBadge = currentPhase && selectedAgent && state.runningAgents.includes(selectedAgent)
+        ? `<span class="phase-badge phase-${currentPhase.toLowerCase()}">${currentPhase}</span>`
+        : '';
+
+      // Search and controls toolbar
+      const toolbar = selectedAgent ? `
+        <div class="flex items-center gap-2 p-2 border-b border-border">
+          <div class="flex-1 relative">
+            <input type="text" id="log-search-input"
+              placeholder="Search logs... (Ctrl+F)"
+              value="${escapeHtml(searchQuery)}"
+              oninput="searchLog(this.value)"
+              class="w-full bg-bg border border-border rounded px-3 py-1.5 text-xs mono text-gray-300 focus:border-accent focus:outline-none placeholder-gray-600"
+            />
+            ${searchResults ? `<span class="absolute right-2 top-1.5 text-xs mono text-gray-500">${searchResults.total} match${searchResults.total !== 1 ? 'es' : ''}</span>` : ''}
+          </div>
+          ${phaseBadge}
+          <button onclick="downloadLog()" title="Download log" class="p-1.5 rounded hover:bg-border text-gray-500 hover:text-gray-300 transition">
+            ⬇
+          </button>
+        </div>
+      ` : '';
+
+      // Render log content or search results
+      let logBody = '';
+      if (searchResults && searchResults.matches.length > 0) {
+        logBody = searchResults.matches.map(m => {
+          const highlighted = escapeHtml(m.content).replace(
+            new RegExp(escapeHtml(searchQuery), 'gi'),
+            match => `<span class="search-highlight">${match}</span>`
+          );
+          return `<div class="flex gap-2"><span class="text-gray-600 select-none">${m.line}:</span><span class="text-gray-300">${highlighted}</span></div>`;
+        }).join('');
+      } else if (selectedAgent && logContent) {
+        logBody = logContent.split('\n').map(line => {
+          let cls = 'text-gray-400';
+          if (line.includes('error') || line.includes('Error') || line.includes('ERROR')) cls = 'text-danger';
+          else if (line.includes('✓') || line.includes('success') || line.includes('PASS')) cls = 'text-success';
+          else if (line.includes('⚠') || line.includes('warn') || line.includes('WARN')) cls = 'text-warning';
+          return `<div class="${cls}">${escapeHtml(line)}</div>`;
+        }).join('');
+      } else {
+        logBody = '<div class="text-gray-500 text-center mt-10">← Select an agent to view logs</div>';
+      }
+
+      return `
+        <div class="bg-card/50 rounded-xl border border-border flex flex-col flex-1 overflow-hidden">
+          <div class="flex border-b border-border overflow-x-auto">
+            ${tabs.join('')}
+          </div>
+          ${agent ? `
+            <div class="flex gap-1 p-2 border-b border-border overflow-x-auto flex-shrink-0">
+              ${logSelector}
+            </div>
+          ` : ''}
+          ${toolbar}
+          <div id="log-content" class="flex-1 overflow-y-auto p-4 log-box text-gray-300 scroll-auto">
+            ${logBody}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPrdProgress() {
+      const subtasks = state.task.subtasks.filter(s => s.storyId);
+      if (subtasks.length === 0) return '';
+
+      const totalAC = subtasks.reduce((sum, s) => sum + s.acceptanceCriteria.length, 0);
+      const passedAC = subtasks.reduce((sum, s) => sum + s.acceptanceCriteria.filter(ac => ac.status === 'pass').length, 0);
+
+      return `
+        <div class="bg-card/50 rounded-xl border border-border p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">PRD Progress</h2>
+            ${totalAC > 0 ? `<span class="text-xs mono ${passedAC === totalAC ? 'text-success' : 'text-gray-500'}">${passedAC}/${totalAC} AC</span>` : ''}
+          </div>
+          <div class="flex flex-col gap-2">
+            ${subtasks.map(s => {
+        const icon = s.status === 'done' ? '✅' : s.status === 'in_progress' ? '🔄' : '⬜';
+        const acSummary = s.acceptanceCriteria.length > 0
+          ? `<div class="flex gap-1 mt-1">${s.acceptanceCriteria.map(ac =>
+            `<span class="w-2 h-2 rounded-full ${ac.status === 'pass' ? 'bg-success' : ac.status === 'in_progress' ? 'bg-warning' : 'bg-gray-600'}"></span>`
+          ).join('')}</div>`
+          : '';
+        return `
+                <div class="p-2 rounded-lg hover:bg-white/5 transition">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs">${icon}</span>
+                    <span class="text-xs mono text-accent">${s.storyId}</span>
+                    <span class="text-xs text-gray-400 truncate flex-1">${s.title.replace(/\*\*/g, '').replace(/\[US-\d+\]\s*/, '').substring(0, 40)}</span>
+                  </div>
+                  ${acSummary}
+                </div>
+              `;
+      }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDirectiveTimeline() {
+      const directives = state.directives || [];
+      if (directives.length === 0) return '';
+
+      const actionColors = {
+        EXECUTE: 'bg-blue-400', REVIEW: 'bg-purple-400', APPROVE: 'bg-success',
+        SKIP: 'bg-warning', DONE: 'bg-success', FRONTEND_EXECUTE: 'bg-indigo-400',
+        FRONTEND_REVIEW: 'bg-pink-400'
+      };
+      const actionIcons = {
+        EXECUTE: '⚡', REVIEW: '🔍', APPROVE: '✅',
+        SKIP: '⏭', DONE: '🎉', FRONTEND_EXECUTE: '🎨',
+        FRONTEND_REVIEW: '🔎'
+      };
+
+      return `
+        <div class="bg-card/50 rounded-xl border border-border p-4">
+          <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Directive Timeline</h2>
+          <div class="flex flex-col">
+            ${directives.slice(-10).map((d, i, arr) => `
+              <div class="flex gap-3">
+                <div class="flex flex-col items-center">
+                  <div class="timeline-dot ${actionColors[d.action] || 'bg-gray-500'}"></div>
+                  ${i < arr.length - 1 ? '<div class="timeline-line flex-1 min-h-[16px]"></div>' : ''}
+                </div>
+                <div class="pb-3 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs">${actionIcons[d.action] || '❓'}</span>
+                    <span class="text-xs font-semibold ${d.action === 'APPROVE' || d.action === 'DONE' ? 'text-success' : d.action === 'SKIP' ? 'text-warning' : 'text-gray-300'}">${d.action}</span>
+                    ${d.subtask ? `<span class="text-xs mono text-gray-500">#${d.subtask}</span>` : ''}
+                  </div>
+                  ${d.instructions ? `<div class="text-xs text-gray-500 mt-0.5 truncate">${escapeHtml(d.instructions.substring(0, 60))}</div>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCoordLog() {
+      const logs = state.coordLog || [];
+
+      return `
+        <div class="bg-card/50 rounded-xl border border-border flex flex-col h-full overflow-hidden">
+          <div class="p-3 border-b border-border flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Coordinator Log</h2>
+            <span class="text-xs mono text-gray-600">${logs.length} entries</span>
+          </div>
+          <div class="flex-1 overflow-y-auto p-3 log-box">
+            ${logs.map(entry => {
+        let cls = 'text-gray-500';
+        const l = entry.raw;
+        if (l.includes('✓') || l.includes('APPROVED') || l.includes('done')) cls = 'text-success';
+        else if (l.includes('🚀') || l.includes('Sending')) cls = 'text-accent';
+        else if (l.includes('⚠') || l.includes('stale') || l.includes('SKIP')) cls = 'text-warning';
+        else if (l.includes('ERROR') || l.includes('failed') || l.includes('exited 1')) cls = 'text-danger';
+        else if (l.includes('EXECUTE') || l.includes('REVIEW')) cls = 'text-blue-400';
+        else if (l.includes('FRONTEND')) cls = 'text-purple-400';
+        return `<div class="${cls} leading-relaxed">${escapeHtml(l)}</div>`;
+      }).join('')}
+          </div>
+          ${state.sessions.length > 1 ? `
+            <div class="p-2 border-t border-border">
+              <select onchange="switchSession(this.value)" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs mono text-gray-400">
+                ${state.sessions.map(s => `
+                  <option value="${s}" ${s === state.sessionId ? 'selected' : ''}>${s}</option>
+                `).join('')}
+              </select>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Auto-refresh log every 3s if agent is running
+    setInterval(() => {
+      if (selectedLogFile && state && state.runningAgents.includes(selectedAgent)) {
+        fetchLog(selectedLogFile);
+      }
+    }, 3000);
+
+    // Ctrl+F shortcut for log search
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        const searchInput = document.getElementById('log-search-input');
+        if (searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>

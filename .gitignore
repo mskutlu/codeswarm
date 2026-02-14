@@ -1,0 +1,11 @@
+node_modules/
+.history/
+.idea/
+*.log
+test-results/
+playwright-report/
+dashboard/node_modules/
+samples/demo-crud-api/.agentic/sessions/
+samples/demo-crud-api/.claude/
+samples/demo-crud-api/.tldr*
+package-lock.json

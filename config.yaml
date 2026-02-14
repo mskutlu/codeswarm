@@ -1,0 +1,55 @@
+# Default agent role assignments
+# Override with CLI flags: --planner, --executor, --reviewer
+
+roles:
+  planner: claude        # claude | gemini | codex | amp | opencode
+  executor: gemini       # claude | gemini | codex | amp | opencode
+  reviewer: codex        # claude | gemini | codex | amp | opencode
+
+# Model preferences per agent
+models:
+  claude: opus           # opus | sonnet | haiku  (alias or full name e.g. claude-opus-4-6-20260212)
+  gemini: ""             # leave empty for default, or specify e.g. gemini-2.5-pro
+  codex: ""              # leave empty for default, or specify e.g. o3
+  amp: ""                # leave empty for default
+  opencode: ""           # leave empty for default
+
+# Permission modes
+permissions:
+  planner: plan          # plan = read-only, no edits
+  executor: auto_edit    # auto_edit = auto-approve file edits
+  reviewer: plan         # plan = read-only analysis
+
+# Shared workspace settings
+workspace:
+  agentic_dir: .agentic              # created inside each project
+  plan_file: plan.md
+  execution_log: execution.log
+  review_file: review.md
+  screenshots_dir: screenshots
+  test_report: test-report.md
+
+# Browser testing (Playwright MCP)
+browser_testing:
+  enabled: false
+  browser: chromium                  # chromium | firefox | webkit
+  headless: true                     # set false to watch the browser
+  base_url: "http://localhost:4200"
+  credentials:
+    username: "admin"
+    password: "admin"
+  screenshot_on_step: true
+  timeout_ms: 30000
+
+# Timeouts (seconds)
+timeouts:
+  planner: 300
+  executor: 600
+  reviewer: 300
+  browser_test: 120
+
+# Hooks (optional scripts to run between phases)
+hooks:
+  after_plan: ""       # e.g. "./hooks/validate-plan.sh"
+  after_execute: ""    # e.g. "npm run build && npm test"
+  after_review: ""     # e.g. "./hooks/notify-slack.sh"

@@ -1,0 +1,63 @@
+{
+    "project": "TodoApp",
+    "branchName": "agentic/todo-api",
+    "description": "Todo List REST API - Simple CRUD operations for task management",
+    "userStories": [
+        {
+            "id": "US-001",
+            "title": "Initialize project structure",
+            "description": "As a developer, I need a clean project structure with Express and SQLite setup.",
+            "acceptanceCriteria": [
+                "package.json exists with express and better-sqlite3 dependencies",
+                "src/index.js creates Express app listening on port 3000",
+                "src/database.js initializes SQLite with a todos table",
+                "npm start runs without errors"
+            ],
+            "priority": 1,
+            "passes": false,
+            "notes": "Use ES modules (type: module)"
+        },
+        {
+            "id": "US-002",
+            "title": "Implement GET /api/todos endpoint",
+            "description": "As a user, I want to list all todos so that I can see my tasks.",
+            "acceptanceCriteria": [
+                "GET /api/todos returns 200 with JSON array",
+                "Response includes id, title, completed, created_at fields",
+                "Empty database returns empty array",
+                "npm start runs without errors"
+            ],
+            "priority": 2,
+            "passes": false,
+            "notes": "Use Express Router"
+        },
+        {
+            "id": "US-003",
+            "title": "Implement POST /api/todos endpoint",
+            "description": "As a user, I want to create new todos so that I can track tasks.",
+            "acceptanceCriteria": [
+                "POST /api/todos with title creates a todo",
+                "Returns 201 with the created todo object",
+                "Missing title returns 400 with error message",
+                "npm start runs without errors"
+            ],
+            "priority": 3,
+            "passes": false,
+            "notes": "Validate title is non-empty string"
+        },
+        {
+            "id": "US-004",
+            "title": "Implement PATCH and DELETE endpoints",
+            "description": "As a user, I want to update and delete todos to manage my task list.",
+            "acceptanceCriteria": [
+                "PATCH /api/todos/:id updates title and/or completed",
+                "DELETE /api/todos/:id returns 204",
+                "Non-existent id returns 404",
+                "npm start runs without errors"
+            ],
+            "priority": 4,
+            "passes": false,
+            "notes": "PATCH should do partial update"
+        }
+    ]
+}
