@@ -59,6 +59,14 @@ codeswarm --project ~/my-app \
   --planner codex \
   --executor claude \
   --reviewer gemini,amp
+
+# Run a complex workflow with a custom plan and dashboard
+codeswarm --project samples/demo-crud-api \
+  --plan "docs/plan.md" \
+  --planner codex \
+  --executor claude \
+  --reviewer gemini,amp \
+  --dashboard
 ```
 
 ## Features
