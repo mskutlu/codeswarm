@@ -41,6 +41,7 @@ MAX_RETRIES=3          # retries per subtask before planner moves on
 DRY_RUN=false
 CONTEXT_FILES=""
 SKILL_FILES=""
+MODEL_OVERRIDES=""     # --model agent:model,agent:model:effort
 REPLAN=false
 SPLIT_VIEW=false          # --split: show agents in tmux split panes
 USE_TMUX=false            # --tmux: use tmux sessions (default: direct bg processes)
@@ -70,6 +71,7 @@ while [[ $# -gt 0 ]]; do
     --max-retries)          MAX_RETRIES="$2"; shift 2 ;;
     --context)              CONTEXT_FILES="$2"; shift 2 ;;
     --skills)               SKILL_FILES="$2"; shift 2 ;;
+    --model)                MODEL_OVERRIDES="$2"; shift 2 ;;
     --replan)               REPLAN=true; shift ;;
     --split)                SPLIT_VIEW=true; shift ;;
     --frontend)             FRONTEND=true; shift ;;
@@ -157,6 +159,49 @@ _retry() {
 STALE_TIMEOUT=${STALE_TIMEOUT:-300}  # 5 min no output → kill
 HEARTBEAT_INTERVAL=30
 
+# ─── Model Resolution ────────────────────────────────────
+# Resolve model for an agent from --model overrides
+# Format: agent:model or agent:model:effort (codex)
+get_model_for() {
+  local agent="$1"
+  local model=""
+  if [[ -n "$MODEL_OVERRIDES" ]]; then
+    IFS=',' read -ra pairs <<< "$MODEL_OVERRIDES"
+    for pair in "${pairs[@]}"; do
+      local key="${pair%%:*}"
+      if [[ "$key" == "$agent" ]]; then
+        local rest="${pair#*:}"  # everything after first colon
+        # If rest has another colon (agent:model:effort), take only model part
+        if [[ "$rest" == *:* ]]; then
+          model="${rest%:*}"   # strip last segment (effort)
+        else
+          model="$rest"
+        fi
+        break
+      fi
+    done
+  fi
+  echo "$model"
+}
+
+# Extract reasoning effort for codex (third segment: agent:model:effort)
+get_reasoning_effort() {
+  local agent="$1"
+  if [[ -n "$MODEL_OVERRIDES" ]]; then
+    IFS=',' read -ra pairs <<< "$MODEL_OVERRIDES"
+    for pair in "${pairs[@]}"; do
+      local key="${pair%%:*}"
+      if [[ "$key" == "$agent" ]]; then
+        local rest="${pair#*:}"
+        if [[ "$rest" == *:* ]]; then
+          echo "${rest##*:}"  # last segment = effort
+        fi
+        break
+      fi
+    done
+  fi
+}
+
 MSG_SEQ=0
 send_to_agent() {
   local agent_name="$1"
@@ -186,26 +231,27 @@ send_to_agent() {
   local agent_cmd=""
   local agent_retries=${AGENT_RETRY_COUNT:-3}
   local agent_retry_delay=${AGENT_RETRY_DELAY:-5}
+
+  # Resolve model for this agent
+  local model=$(get_model_for "$agent_name")
+  local effort=$(get_reasoning_effort "$agent_name")
+  [[ -n "$model" ]] && log "  📦 Model: ${model}${effort:+ (effort: ${effort})}"
+
   case "$agent_name" in
     claude)
-      # Pattern from ralphy: direct execution, --output-format stream-json
-      # --verbose: better error diagnostics
-      # Retry handles transient "No messages returned" errors
-      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} claude --dangerously-skip-permissions --verbose -p '${short}'; echo \$? > '${exitcode_file}'"
+      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} claude ${model:+--model $model} --dangerously-skip-permissions --verbose -p '${short}'; echo \$? > '${exitcode_file}'"
       ;;
     gemini)
-      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} gemini -p '${short}' --approval-mode yolo; echo \$? > '${exitcode_file}'"
+      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} gemini ${model:+--model $model} -p '${short}' --approval-mode yolo; echo \$? > '${exitcode_file}'"
       ;;
     codex)
-      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} codex exec --yolo '${short}'; echo \$? > '${exitcode_file}'"
+      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} codex exec ${model:+--model $model} ${effort:+--reasoning-effort $effort} --yolo '${short}'; echo \$? > '${exitcode_file}'"
       ;;
     amp)
-      # Pattern from ralph project: --dangerously-allow-all + -x (execute mode)
       agent_cmd="_retry ${agent_retries} ${agent_retry_delay} amp --dangerously-allow-all -x '${short}'; echo \$? > '${exitcode_file}'"
       ;;
     opencode)
-      # Pattern from ralphy: env var for permissions, 'run' subcommand
-      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} env OPENCODE_PERMISSION='{\"*\":\"allow\"}' opencode run '${short}'; echo \$? > '${exitcode_file}'"
+      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} env OPENCODE_PERMISSION='{\"*\":\"allow\"}' opencode run ${model:+--model $model} '${short}'; echo \$? > '${exitcode_file}'"
       ;;
     *)
       error "Unknown agent: $agent_name (supported: claude, gemini, codex, amp, opencode)"; return 1 ;;

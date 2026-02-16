@@ -22,7 +22,7 @@ permissions:
 
 # Shared workspace settings
 workspace:
-  agentic_dir: .agentic              # created inside each project
+  agentic_dir: .codeswarm              # created inside each project
   plan_file: plan.md
   execution_log: execution.log
   review_file: review.md
