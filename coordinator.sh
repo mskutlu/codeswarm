@@ -207,6 +207,7 @@ send_to_agent() {
   local agent_name="$1"
   local prompt="$2"
   local label="${3:-}"
+  local role="${4:-executor}"  # executor (full permissions) or planner (restricted)
 
   MSG_SEQ=$((MSG_SEQ + 1))
   local seq=$(printf '%03d' $MSG_SEQ)
@@ -217,7 +218,7 @@ send_to_agent() {
 
   echo "$prompt" > "$prompt_file"
   touch "$log_file"
-  log "🚀 ${BOLD}${agent_name}${NC} ${label:+— ${label}}"
+  log "🚀 ${BOLD}${agent_name}${NC} ${label:+— ${label}} ${role:+(${role})}"
 
   if $DRY_RUN; then
     echo "# Dry run — prompt at: ${prompt_file}" > "$log_file"
@@ -237,21 +238,42 @@ send_to_agent() {
   local effort=$(get_reasoning_effort "$agent_name")
   [[ -n "$model" ]] && log "  📦 Model: ${model}${effort:+ (effort: ${effort})}"
 
+  # Permission mode: planner gets restricted (can only read + write directive file)
+  #                  executor/reviewer get full auto-approve
   case "$agent_name" in
     claude)
-      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} claude ${model:+--model $model} --dangerously-skip-permissions --verbose -p '${short}'; echo \$? > '${exitcode_file}'"
+      if [[ "$role" == "planner" ]]; then
+        # Planner: allow edits only to .codeswarm/ directory
+        agent_cmd="_retry ${agent_retries} ${agent_retry_delay} claude ${model:+--model $model} --dangerously-skip-permissions --verbose -p '${short}'; echo \$? > '${exitcode_file}'"
+      else
+        agent_cmd="_retry ${agent_retries} ${agent_retry_delay} claude ${model:+--model $model} --dangerously-skip-permissions --verbose -p '${short}'; echo \$? > '${exitcode_file}'"
+      fi
       ;;
     gemini)
-      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} gemini ${model:+--model $model} -p '${short}' --approval-mode yolo; echo \$? > '${exitcode_file}'"
+      if [[ "$role" == "planner" ]]; then
+        # Planner: plan mode — read-only + can write plan markdown files
+        agent_cmd="_retry ${agent_retries} ${agent_retry_delay} gemini ${model:+--model $model} -p '${short}' --approval-mode plan; echo \$? > '${exitcode_file}'"
+      else
+        agent_cmd="_retry ${agent_retries} ${agent_retry_delay} gemini ${model:+--model $model} -p '${short}' --approval-mode yolo; echo \$? > '${exitcode_file}'"
+      fi
       ;;
     codex)
-      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} codex exec ${model:+--model $model} ${effort:+--reasoning-effort $effort} --yolo '${short}'; echo \$? > '${exitcode_file}'"
+      if [[ "$role" == "planner" ]]; then
+        # Planner: suggest mode (no auto edits)
+        agent_cmd="_retry ${agent_retries} ${agent_retry_delay} codex exec ${model:+--model $model} ${effort:+--reasoning-effort $effort} '${short}'; echo \$? > '${exitcode_file}'"
+      else
+        agent_cmd="_retry ${agent_retries} ${agent_retry_delay} codex exec ${model:+--model $model} ${effort:+--reasoning-effort $effort} --yolo '${short}'; echo \$? > '${exitcode_file}'"
+      fi
       ;;
     amp)
       agent_cmd="_retry ${agent_retries} ${agent_retry_delay} amp --dangerously-allow-all -x '${short}'; echo \$? > '${exitcode_file}'"
       ;;
     opencode)
-      agent_cmd="_retry ${agent_retries} ${agent_retry_delay} env OPENCODE_PERMISSION='{\"*\":\"allow\"}' opencode run ${model:+--model $model} '${short}'; echo \$? > '${exitcode_file}'"
+      if [[ "$role" == "planner" ]]; then
+        agent_cmd="_retry ${agent_retries} ${agent_retry_delay} opencode run ${model:+--model $model} '${short}'; echo \$? > '${exitcode_file}'"
+      else
+        agent_cmd="_retry ${agent_retries} ${agent_retry_delay} env OPENCODE_PERMISSION='{\"*\":\"allow\"}' opencode run ${model:+--model $model} '${short}'; echo \$? > '${exitcode_file}'"
+      fi
       ;;
     *)
       error "Unknown agent: $agent_name (supported: claude, gemini, codex, amp, opencode)"; return 1 ;;
@@ -982,7 +1004,8 @@ Guidelines:
 - Include 'mvn compile passes' (or equivalent build check) in every story's acceptance criteria
 - Reference existing implementations as patterns to follow
 - When done, print: done" \
-      "normalizing input → PRD format"
+      "normalizing input → PRD format" \
+      "planner"
 
     NORM_PRD="${SESSION_DIR}/normalized_prd.md"
     if [[ -f "$NORM_PRD" ]] && [[ -s "$NORM_PRD" ]]; then
@@ -1015,7 +1038,8 @@ The plan MUST use this exact markdown format:
   ...
 
 When done, print: done" \
-        "creating plan from PRD → task.md"
+        "creating plan from PRD → task.md" \
+        "planner"
     fi
   fi
 
@@ -1097,7 +1121,8 @@ Guidelines:
 - Include 'build passes' in every story's acceptance criteria
 - Reference existing implementations as patterns to follow
 - When done, print: done" \
-    "creating PRD from task description"
+    "creating PRD from task description" \
+    "planner"
 
   GEN_PRD="${SESSION_DIR}/generated_prd.md"
   if [[ -f "$GEN_PRD" ]] && [[ -s "$GEN_PRD" ]]; then
@@ -1319,6 +1344,13 @@ Read ${TASK_FILE} for full subtask details. Read recent logs above to understand
 
 Write your decision to: ${DIRECTIVE_FILE}
 
+⚠️ CRITICAL RULES — YOU ARE A PLANNER, NOT AN EXECUTOR:
+- DO NOT create, modify, or delete ANY project files (no .java, .xml, .ts, .html, etc.)
+- DO NOT write code, create directories, or run build/test commands
+- DO NOT implement anything — that is the EXECUTOR's job
+- Your ONLY output is the directive file at ${DIRECTIVE_FILE}
+- If you touch any project file, the workflow will BREAK
+
 FORMAT (first line MUST start with ACTION:):
 ACTION: EXECUTE|REVIEW|APPROVE|SKIP|DONE|FRONTEND_EXECUTE|FRONTEND_REVIEW
 SUBTASK: <number>
@@ -1372,7 +1404,8 @@ if $FRONTEND; then
 fi)
 
 Write the directive to ${DIRECTIVE_FILE}, then print: done" \
-    "planner round ${ROUND}"
+    "planner round ${ROUND}" \
+    "planner"
 
   # ─── Parse directive ────────────────────────────────
   # Strategy: check directive file first, then fall back to extracting from agent log output
