@@ -425,9 +425,9 @@ discover_skills() {
   content+=$(load_skill_file "${PROJECT}/AGENTS.md" "project/AGENTS.md")
   content+=$(load_skill_file "${PROJECT}/${agent_upper}.md" "project/${agent_upper}.md")
 
-  if [[ -d "${PROJECT}/.agentic/skills" ]]; then
-    for sf in "${PROJECT}/.agentic/skills/"*.md; do
-      content+=$(load_skill_file "$sf" ".agentic/skills/$(basename "$sf")")
+  if [[ -d "${PROJECT}/.codeswarm/skills" ]]; then
+    for sf in "${PROJECT}/.codeswarm/skills/"*.md; do
+      content+=$(load_skill_file "$sf" ".codeswarm/skills/$(basename "$sf")")
     done
   fi
 
@@ -735,7 +735,7 @@ prd_from_json() {
 
 # Load PRD skill template if available
 load_prd_skill() {
-  local skill_file="${PROJECT}/.agentic/skills/prd_template.md"
+  local skill_file="${PROJECT}/.codeswarm/skills/prd_template.md"
   if [[ -f "$skill_file" ]]; then
     echo "
 === PRD GENERATION SKILL ===
@@ -1289,45 +1289,39 @@ if $FRONTEND; then
 - Services: backend=${BACKEND_URL:-not running}, frontend=${FRONTEND_URL:-not running}"
 fi)
 
-Quick reference:
-- EXECUTE N: Send subtask to backend executor (${EXECUTOR}). Give SPECIFIC instructions.
-- REVIEW N: Send to backend reviewers (${REVIEWER_LIST[*]}). Tell them what to focus on.$(
+ACTIONS:
+- EXECUTE N: Send subtask to executor (${EXECUTOR}). Include SPECIFIC instructions.
+- REVIEW N: Send to reviewers (${REVIEWER_LIST[*]}). They provide feedback only — they do NOT approve/reject.$(
 if $FRONTEND; then
   echo "
 - FRONTEND_EXECUTE N: Send subtask to frontend dev (${FRONTEND_DEV:-?}). For Angular/UI work.
-  The frontend dev should: implement components, services, routes, templates.
-  Include: use chrome-devtools-mcp to test at ${FRONTEND_URL:-http://localhost:4200}.
-- FRONTEND_REVIEW N: Send to frontend reviewers ($(if [[ ${#FRONTEND_REVIEWER_LIST[@]} -gt 0 ]]; then echo "${FRONTEND_REVIEWER_LIST[*]}"; else echo '?'; fi)).
-  Reviewers use chrome-devtools-mcp to: navigate pages, check console errors, inspect network requests, take screenshots."
+- FRONTEND_REVIEW N: Send to frontend reviewers. They provide feedback only."
 fi)
-- APPROVE N: Mark subtask done. Use after successful execution or review.
-- SKIP N: Skip subtask with reason.
-- DONE: All work is complete.
+- APPROVE N: YOU decide to mark subtask done.
+- SKIP N: YOU decide to skip a subtask.
+- DONE: YOU decide all work is complete.
 
-Strategy tips:
-- For the FIRST pending subtask: use EXECUTE with detailed instructions
-- After EXECUTE succeeds: ALWAYS send to REVIEW next. Do NOT skip review. Reviewers catch bugs.
-- After REVIEW passes (reviewer says APPROVE): then APPROVE the subtask
-- After REVIEW fails (reviewer says REJECT): EXECUTE again with the reviewer's feedback
-- If execution failed: read the error in recent logs, then EXECUTE again with fix instructions
-- If stuck after 2+ failures: SKIP with reason
-- ONLY write ACTION: DONE when ALL ${TOTAL}/${TOTAL} subtasks are completed. Currently ${COMPLETED}/${TOTAL} done — DO NOT write DONE yet unless all are complete$(
+YOU ARE THE BRAIN — all decisions are yours:
+- After EVERY action (execute or review), results come back to YOU.
+- YOU read ALL feedback (execution logs, reviewer reports) and decide what to do next.
+- When reviewers disagree (one says OK, another says NOT OK), YOU are the arbiter.
+  Analyze both reports, decide if the concern is valid, and act accordingly.
+- YOU decide when something is good enough to APPROVE — not the reviewers.
+- YOU decide when to re-execute with specific fix instructions based on feedback.
+- YOU decide when to SKIP if stuck after multiple attempts.
+- ONLY write DONE when ALL ${TOTAL}/${TOTAL} subtasks are completed. Currently ${COMPLETED}/${TOTAL} done.$(
 if [[ "$PRD_SOURCE" == "prd" ]]; then
   echo "
 
-PRD MODE — Each subtask has Acceptance Criteria. When writing EXECUTE instructions:
-- Reference the acceptance criteria from the task.md for that subtask
-- Tell the executor to verify EACH acceptance criterion before finishing
-- Include the specific files, classes, and patterns from the PRD
-When writing REVIEW instructions:
-- Tell reviewers to verify EACH acceptance criterion explicitly
-- Ask reviewers to report which criteria pass and which fail
-- Include file/line references for any failures"
+PRD MODE — Each subtask has Acceptance Criteria.
+- When writing EXECUTE: reference acceptance criteria, tell executor to verify each one.
+- When writing REVIEW: tell reviewers to check each criterion and report findings.
+- YOU decide if criteria are met based on the feedback."
 fi)$(
 if $FRONTEND; then
   echo "
 - For UI/Angular subtasks: use FRONTEND_EXECUTE instead of EXECUTE
-- After FRONTEND_EXECUTE: use FRONTEND_REVIEW to verify in browser (console logs, network, screenshots)
+- After FRONTEND_EXECUTE: use FRONTEND_REVIEW to get browser feedback
 - Backend subtasks FIRST, then frontend subtasks that depend on backend APIs"
 fi)
 
@@ -1421,11 +1415,11 @@ Steps:
 if [[ "$PRD_SOURCE" == "prd" ]]; then
   echo "
 4. Verify EACH acceptance criterion listed above — the subtask is NOT done until all criteria pass
-5. Do NOT edit task.md or any .agentic/ files
+5. Do NOT edit task.md or any .codeswarm/ files
 6. When done, print: done"
 else
   echo "
-4. Do NOT edit task.md or any .agentic/ files
+4. Do NOT edit task.md or any .codeswarm/ files
 5. When done, print: done"
 fi)" \
         "execute subtask #${SUBTASK_NUM}"
@@ -1487,7 +1481,11 @@ You MUST verify EACH acceptance criterion explicitly and report pass/fail for ea
 A subtask only passes review if ALL acceptance criteria are met."
 fi)
 
-Rules: Report only — do NOT approve/reject. Do NOT edit task.md. When done, print: done" \
+Rules:
+- You provide FEEDBACK only. The PLANNER makes all decisions.
+- Report what you found — issues, concerns, quality assessment.
+- Do NOT approve or reject. Do NOT edit task.md.
+- When done, print: done" \
           "review #${SUBTASK_NUM} by ${rev_agent}" &
         REVIEW_PIDS+=($!)
 
@@ -1548,7 +1546,7 @@ Steps:
    c. list_network_requests — verify API calls succeed
    d. take_screenshot — visual confirmation
    e. fill_form / click — test interactive elements
-5. Do NOT edit task.md or any .agentic/ files
+5. Do NOT edit task.md or any .codeswarm/ files
 6. When done, print: done" \
         "frontend execute subtask #${SUBTASK_NUM}"
 
@@ -1616,7 +1614,11 @@ CODE_QUALITY: <Angular best practices, component structure>
 SCREENSHOT: <describe what the page looks like>
 ASSESSMENT: <1-2 sentence overall quality summary>
 
-Rules: Report only — do NOT approve/reject. Do NOT edit task.md. When done, print: done" \
+Rules:
+- You provide FEEDBACK only. The PLANNER makes all decisions.
+- Report what you found — console errors, network issues, UI state, quality.
+- Do NOT approve or reject. Do NOT edit task.md.
+- When done, print: done" \
           "frontend review #${SUBTASK_NUM} by ${rev_agent}" &
         FE_REVIEW_PIDS+=($!)
 
