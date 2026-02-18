@@ -1056,14 +1056,29 @@ elif [[ -n "$PLAN_FILE" ]]; then
   PRD_SOURCE="plan"
   # Check if the "plan" is actually a PRD
   if is_prd_format "$PLAN_FILE"; then
-    log "📋 Plan file is in PRD format — converting user stories to subtasks..."
-    cp "$PLAN_FILE" "${SESSION_DIR}/original_prd.md"
-    prd_to_task_md "$PLAN_FILE" "$TASK_FILE"
-    PRD_SOURCE="prd"
-    success "PRD converted to task.md ($(grep -c '^\- \[ \]' "$TASK_FILE" 2>/dev/null || echo 0) subtasks)"
+    # Resume detection: if task.md already has progress, don't overwrite it
+    if [[ -f "$TASK_FILE" ]] && grep -q '\[x\]' "$TASK_FILE" 2>/dev/null && ! $REPLAN; then
+      COMPLETED_COUNT=$(grep -c '\[x\]' "$TASK_FILE" 2>/dev/null || echo "0")
+      TOTAL_COUNT=$(grep -c '\- \[.\]' "$TASK_FILE" 2>/dev/null || echo "0")
+      log "♻️  Resuming existing task.md (${COMPLETED_COUNT}/${TOTAL_COUNT} done). Use --replan to start fresh."
+      PRD_SOURCE="prd"
+    else
+      log "📋 Plan file is in PRD format — converting user stories to subtasks..."
+      cp "$PLAN_FILE" "${SESSION_DIR}/original_prd.md"
+      prd_to_task_md "$PLAN_FILE" "$TASK_FILE"
+      PRD_SOURCE="prd"
+      success "PRD converted to task.md ($(grep -c '^\- \[ \]' "$TASK_FILE" 2>/dev/null || echo 0) subtasks)"
+    fi
   else
-    cp "$PLAN_FILE" "$TASK_FILE"
-    success "Plan loaded from: $PLAN_FILE"
+    # Plain plan file: same resume logic
+    if [[ -f "$TASK_FILE" ]] && grep -q '\[x\]' "$TASK_FILE" 2>/dev/null && ! $REPLAN; then
+      COMPLETED_COUNT=$(grep -c '\[x\]' "$TASK_FILE" 2>/dev/null || echo "0")
+      TOTAL_COUNT=$(grep -c '\- \[.\]' "$TASK_FILE" 2>/dev/null || echo "0")
+      log "♻️  Resuming existing task.md (${COMPLETED_COUNT}/${TOTAL_COUNT} done). Use --replan to start fresh."
+    else
+      cp "$PLAN_FILE" "$TASK_FILE"
+      success "Plan loaded from: $PLAN_FILE"
+    fi
   fi
 
 elif [[ -f "$TASK_FILE" ]] && [[ -s "$TASK_FILE" ]] && ! $REPLAN; then
@@ -1289,6 +1304,12 @@ while [[ $ROUND -lt $MAX_ROUNDS ]] && [[ $COMPLETED -lt $TOTAL ]]; do
     ALL_LINES+=("$line")
   done < <(grep -n '\- \[.\]' "$TASK_FILE" 2>/dev/null || true)
   TOTAL=${#ALL_LINES[@]}
+
+  # Recalculate completed count from refreshed task.md
+  COMPLETED=0
+  for ((rc=0; rc<TOTAL; rc++)); do
+    [[ "$(get_subtask_status $rc)" == "done" ]] && COMPLETED=$((COMPLETED + 1))
+  done
 
   # Truncate state history to last 10 rounds to prevent unbounded growth
   state_lines=$(wc -l < "$STATE_FILE" 2>/dev/null | tr -d ' ' || echo "0")
