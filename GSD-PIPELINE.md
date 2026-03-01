@@ -1,20 +1,57 @@
 # GSD Pipeline — Autonomous Multi-Agent Development
 
-> Combines **GSD's methodology** (research → plan → execute → verify) with **Codeswarm's multi-agent orchestration** (any AI provider, parallel execution, dashboard).
+> Bundles the **real [Get Shit Done](https://github.com/glittercowboy/get-shit-done) v1.22** implementation (agents, commands, workflows, templates, gsd-tools.cjs) with **Codeswarm's multi-agent orchestration** (any AI provider, parallel execution, dashboard).
 
 ## The Problem
 
 | Tool | Strength | Weakness |
 |------|----------|----------|
-| **GSD** | Deep planning, research, context engineering, verification | Single agent (Claude only), asks too many questions, not autonomous |
+| **GSD** | Deep planning, research, context engineering, verification, gsd-tools CLI | Single agent (Claude only), asks too many questions, not autonomous |
 | **Codeswarm** | Multi-agent, any AI provider, parallel, autonomous | Simple planning, no research, no verification loop |
 
 ## The Solution
 
-The GSD Pipeline takes GSD's proven methodology and makes it:
+Codeswarm bundles the **complete GSD implementation** and adds:
 - **Multi-agent** — different AI providers for different roles
 - **Fully autonomous** — no questions asked, planner makes all decisions
 - **Modular** — run the full pipeline or individual modules
+
+## Install GSD Commands
+
+Before running the pipeline, install GSD's slash commands and agents into your AI CLI:
+
+```bash
+# Install GSD for Claude Code globally
+codeswarm gsd install --claude --global
+
+# Install for all supported runtimes
+codeswarm gsd install --all --global
+
+# Install locally (current project only)
+codeswarm gsd install --claude --local
+
+# See all installer options
+codeswarm gsd install --help
+```
+
+This copies GSD's commands (`/gsd:plan-phase`, `/gsd:execute-phase`, etc.), agents (`gsd-executor`, `gsd-planner`, etc.), templates, workflows, and hooks into the appropriate config directory.
+
+## What's Bundled
+
+```
+gsd/                          # Real GSD v1.22 implementation
+├── bin/install.js            # GSD installer (multi-runtime)
+├── agents/                   # 11 agent definitions (executor, planner, verifier, etc.)
+├── commands/gsd/             # 30+ slash commands (new-project, plan-phase, etc.)
+├── get-shit-done/
+│   ├── bin/gsd-tools.cjs     # GSD CLI tool (state, verify, scaffold, etc.)
+│   ├── bin/lib/*.cjs         # Core library (11 modules)
+│   ├── templates/            # Plan, context, research templates
+│   ├── references/           # Planning config, verification patterns, etc.
+│   └── workflows/            # GSD workflow definitions
+├── hooks/dist/               # Bundled hooks (statusline, context monitor)
+└── scripts/                  # Build scripts
+```
 
 ## Architecture
 
@@ -62,7 +99,10 @@ The GSD Pipeline takes GSD's proven methodology and makes it:
 ## Quick Start
 
 ```bash
-# Full autonomous pipeline
+# 1. Install GSD commands into your AI CLI
+codeswarm gsd install --claude --global
+
+# 2. Full autonomous pipeline
 ./gsd.sh --project ~/my-app --task "Add user authentication with JWT"
 
 # With PRD file

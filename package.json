@@ -33,6 +33,7 @@
         "bin/",
         "coordinator.sh",
         "gsd.sh",
+        "gsd/",
         "modules/",
         "templates/",
         "orchestrate.sh",

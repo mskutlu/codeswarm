@@ -45,6 +45,10 @@ source "${SCRIPT_DIR}/modules/plan.sh"
 source "${SCRIPT_DIR}/modules/execute.sh"
 source "${SCRIPT_DIR}/modules/verify.sh"
 
+# Export GSD paths so agents can call gsd-tools.cjs
+export GSD_ROOT
+export GSD_TOOLS
+
 # ─── Defaults ───────────────────────────────────────────
 PROJECT=""
 TASK=""

@@ -19,6 +19,19 @@ _COMMON_LOADED=1
 MODULES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODESWARM_ROOT="$(cd "$MODULES_DIR/.." && pwd)"
 
+# ─── GSD Paths (real GSD implementation) ─────────────────
+GSD_ROOT="${GSD_ROOT:-${CODESWARM_ROOT}/gsd}"
+GSD_TOOLS="${GSD_ROOT}/get-shit-done/bin/gsd-tools.cjs"
+
+# Wrapper: call real GSD tools CLI
+gsd_tools() {
+  if [[ ! -f "$GSD_TOOLS" ]]; then
+    error "GSD tools not found at $GSD_TOOLS"
+    return 1
+  fi
+  node "$GSD_TOOLS" "$@"
+}
+
 # ─── Logging ─────────────────────────────────────────────
 LOG_FILE="${LOG_FILE:-/dev/null}"
 
