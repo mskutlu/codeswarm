@@ -1,6 +1,6 @@
 {
     "name": "codeswarm",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Multi-agent AI orchestration framework — coordinate Claude, Gemini, Codex, Amp, and OpenCode as a unified dev team",
     "license": "MIT",
     "author": "Mustafa Kutlu <your-email@example.com>",
