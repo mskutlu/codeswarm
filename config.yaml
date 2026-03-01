@@ -53,3 +53,26 @@ hooks:
   after_plan: ""       # e.g. "./hooks/validate-plan.sh"
   after_execute: ""    # e.g. "npm run build && npm test"
   after_review: ""     # e.g. "./hooks/notify-slack.sh"
+
+# ─── GSD Pipeline Settings ─────────────────────────────
+# Used by: codeswarm gsd ... or ./gsd.sh ...
+gsd:
+  # Default agents per role
+  planner: claude        # creates plans, generates context
+  executor: claude       # implements plans (comma-sep for multiple)
+  reviewer: ""           # reviews after execution (optional)
+  researcher: ""         # 4 comma-sep agents for parallel research (default: planner x4)
+  checker: ""            # verifies plans before execution (default: planner)
+  verifier: ""           # verifies deliverables after execution (default: planner)
+
+  # Pipeline behavior
+  skip_research: false   # skip research phase entirely
+  skip_verify: false     # skip verification phase
+  map_codebase: false    # map existing codebase before context generation
+  max_phases: 20         # safety limit on phases per run
+  max_fix_rounds: 2      # max verify→fix→verify cycles
+  max_plan_iterations: 3 # max plan→check→replan cycles
+
+  # Agent timeouts (seconds)
+  stale_timeout: 300     # kill agent after N seconds of no output
+  heartbeat_interval: 30 # check agent health every N seconds

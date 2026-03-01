@@ -32,6 +32,9 @@
     "files": [
         "bin/",
         "coordinator.sh",
+        "gsd.sh",
+        "modules/",
+        "templates/",
         "orchestrate.sh",
         "setup.sh",
         "config.yaml",
@@ -40,6 +43,7 @@
         "docs/",
         "playwright.config.ts",
         "COORDINATOR.md",
+        "GSD-PIPELINE.md",
         "AGENT_TIPS.md",
         "TASK_PROTOCOL.md",
         "BROWSER_TESTING.md",
